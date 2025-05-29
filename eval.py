@@ -23,7 +23,7 @@ def parse_args():
     parser = argparse.ArgumentParser('training')
     parser.add_argument('--use_cpu', action='store_true', default=False, help='use cpu mode')
     parser.add_argument('--process_data', action='store_true', default=False, help='save data offline')
-    parser.add_argument('--batch_size', type=int, default=256, help='batch size in training')
+    parser.add_argument('--batch_size', type=int, default=1, help='batch size in training')
     parser.add_argument('--num_class', type=int, default=40, help='class numbers')
     parser.add_argument('--use_normals', action='store_true', default=True, help='use normals')
     parser.add_argument('--adv_func', type=str, default='cross_entropy',
@@ -84,12 +84,12 @@ if __name__ == '__main__':
     CW_adv_func = UntargetedLogitsAdvLoss(kappa=args.kappa)
 
     if args.dataset == 'ModelNet':
-        data_path = '../../PC_Dataset/modelnet40_normal_resampled'
+        data_path = './data/modelnet40_normal_resampled'
         test_dataset = ModelNetDataLoader(root=data_path, args=args, split='test', process_data=args.process_data)
         testDataLoader = torch.utils.data.DataLoader(test_dataset, batch_size=args.batch_size, shuffle=False,
                                                     num_workers=10)
     elif args.dataset == 'ShapeNetPart':
-        data_path = '../../PC_Dataset/shapenetcore_partanno_segmentation_benchmark_v0_normal/'
+        data_path = './data/shapenetcore_partanno_segmentation_benchmark_v0_normal/'
         TEST_DATASET = PartNormalDataset(
             root=data_path,
             npoints=args.num_point,
@@ -133,4 +133,3 @@ if __name__ == '__main__':
                                budget=args.budget)
 
     eval_ASR(model, testDataLoader, args, HiT_attacker)
-

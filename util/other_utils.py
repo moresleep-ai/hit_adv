@@ -162,6 +162,8 @@ def create_logger(save_path='', file_type='', level='debug'):
 
     if save_path != '':
         file_name = os.path.join(save_path, file_type + '_log.txt')
+        if not os.path.exists(file_name):
+            open(file_name, 'w').close()
         fh = logging.FileHandler(file_name, mode='w')
         fh.setLevel(_level)
 

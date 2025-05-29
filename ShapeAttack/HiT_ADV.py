@@ -11,7 +11,6 @@ from mayavi import mlab
 import torch.nn.functional as F
 import open3d as o3d
 
-
 class HiT_ADV:
     """Class for HiT_ADV Attack
     """
@@ -122,6 +121,7 @@ class HiT_ADV:
                                                    total_central_points_idx.view(-1, 1)).view(B, -1, 1)
         central_kappa_std = self.index_points(total_central_kappa_std, tmp_idx)
         # perform binary search
+        tmp_adv_data = None
         for binary_step in range(self.binary_step):
             adv_data = ori_data.clone().detach()
             adv_data_score = score.clone().detach()
@@ -273,6 +273,54 @@ class HiT_ADV:
                     scale_const[e] = (lower_bound[e] + upper_bound[e]) / 2.
 
             torch.cuda.empty_cache()
+
+            def save_tensor_as_txt(points_tensor, filename_str):
+                """将 PyTorch 张量保存为 txt 文件。
+                期望 points_tensor 的形状为 [1, N, C] 或 [N, C]。
+                """
+                if not isinstance(points_tensor, torch.Tensor):
+                    raise TypeError(f"输入必须是 PyTorch 张量，但得到的是 {type(points_tensor)}")
+
+                if points_tensor.dim() == 3 and points_tensor.shape[0] == 1:
+                    points_np = points_tensor.squeeze(0).detach().cpu().numpy()
+                elif points_tensor.dim() == 2:
+                    points_np = points_tensor.detach().cpu().numpy()
+                else:
+                    raise ValueError(f"不支持的张量形状: {points_tensor.shape}。期望 [1, N, C] 或 [N, C]。")
+
+                num_points, num_channels = points_np.shape
+
+                with open(filename_str, "w") as file_object:  # 使用 "w" 模式覆盖或创建新文件
+                    for i in range(num_points):
+                        # 基础的 XYZ 坐标
+                        if num_channels >= 3:
+                            # 使用格式化输出保留一定精度，例如6位小数
+                            msg = f"{points_np[i, 0]:.6f} {points_np[i, 1]:.6f} {points_np[i, 2]:.6f}"
+
+                            # 根据实际通道数处理额外的通道
+                            if num_channels == 4: # 例如，如果你确实有一个特殊的第4个值
+                                # 这是你原来代码的逻辑，如果确定第4个通道存在且要这样用
+                                special_val = points_np[i, 3]
+                                msg += f" {special_val:.6f} {special_val:.6f} {1-special_val:.6f}"
+                            elif num_channels == 6: # 例如，XYZ + 法线 NX NY NZ
+                                msg += f" {points_np[i, 3]:.6f} {points_np[i, 4]:.6f} {points_np[i, 5]:.6f}"
+                            elif num_channels > 3: # 其他多通道情况，打印所有额外通道
+                                for k in range(3, num_channels):
+                                    msg += f" {points_np[i, k]:.6f}"
+                            # 如果 num_channels 就是 3，则 msg 保持为 XYZ，不会进入这里的 if/elif/else
+
+                        elif num_channels > 0: # 如果少于3个通道但仍有数据
+                            msg_parts = [f"{points_np[i, k]:.6f}" for k in range(num_channels)]
+                            msg = " ".join(msg_parts)
+                        else: # 没有通道数据 (不太可能)
+                            msg = ""
+
+                        file_object.write(msg + '\n')
+            if tmp_adv_data is not None:
+                save_tensor_as_txt(tmp_adv_data.transpose(1, 2), 'adv_data.txt')
+                print('adv_data.txt saved')
+            else:
+                print('tmp_adv_data is None')
 
         print('lower_bound is', lower_bound)
         fail_idx = (lower_bound == 0.)
@@ -577,4 +625,3 @@ def visualize_point_cloud(point_cloud, sampling_rate=1.0, point_size=0.05):
 
     # mlab.savefig('./{}.png'.format(formatted_time2), size=(500, 500), figure=None, magnification='auto')
     mlab.show()
-
