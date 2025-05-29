@@ -66,6 +66,7 @@ def parse_args():
                         help='model for training')
     parser.add_argument('--kappa', type=float, default=30.,
                         help='min margin in logits adv loss')
+    parser.add_argument('--save_path', type=str, default='./runs', help='path to save adversarial examples')
 
 
 

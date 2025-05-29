@@ -2,6 +2,8 @@ import os
 import logging
 import torch
 import math
+import time
+import pickle
 from typing import List
 from util import dist_utils
 from tqdm import tqdm
@@ -41,6 +43,9 @@ def eval_ASR(model, test_loader, args, val_attack):
     knn_dist = 0
     uniform_dist = 0
     curv_std_dist = 0
+
+    adv_data_to_save = []
+    labels_to_save = []
     # ***** END INITIALIZE METRIC ***** ***** ***** ***** ***** ***** ***** *****
 
     # ***** EVALUATING ***** ***** ***** ***** ***** ***** ***** *****
@@ -88,6 +93,13 @@ def eval_ASR(model, test_loader, args, val_attack):
             at_num += mask_ori.sum().float().item() - (mask_ori * mask_adv).sum().float().item()
             denom += float(batch_size)
             num += mask_adv.sum().float()
+
+        if adv_data is not None:
+            adv_data_to_save.extend(adv_data.cpu().numpy().tolist())
+            labels_to_save.extend(label.cpu().numpy().tolist())
+
+    with open(os.path.join(args.save_path, time.strftime("%Y%m%d%H%M"), 'adv_data.txt'), 'wb') as f:
+        pickle.dump((adv_data_to_save, labels_to_save), f)
     # ***** END EVALUATING ***** ***** ***** ***** ***** ***** ***** *****
 
     # ***** LOGGING ***** ***** ***** ***** ***** ***** ***** *****
